@@ -1,5 +1,6 @@
 import xmltodict
 from pprint import pprint
+import json
 
 
 def read_voevent(xml_content, is_file=False):
@@ -13,16 +14,12 @@ def read_voevent(xml_content, is_file=False):
     Returns:
         dict: A Python dictionary representation of the VOEvent.
     """
-    try:
-        if is_file:
-            with open(xml_content, "r") as f:
-                xml_content = f.read()
-        # Parse the XML content using xmltodict
-        voevent_dict = xmltodict.parse(xml_content)
-        return clean_voevent(voevent_dict)
-    except Exception as e:
-        print(f"Error parsing VOEvent: {e}")
-        return None
+    if is_file:
+        with open(xml_content, "r") as f:
+            xml_content = f.read()
+    # Parse the XML content using xmltodict
+    voevent_dict = xmltodict.parse(xml_content)
+    return clean_voevent(voevent_dict)
 
 
 def coerce(val):
@@ -130,20 +127,34 @@ def group_groups(groups):
 
 def test_SWIFT():
     fname = "notebooks/data/SWIFT_BAT_Lightcurve_new.xml"
-    with open(fname, "r") as f:
-        event = read_voevent(f.read())
-    pprint(clean_dict(event["VOEvent"]))
+    event = read_voevent(fname, is_file=True)
+    pprint(event)
     return
 
 
 def test_LVC():
     fname = "notebooks/data/LVC_real_preliminary_new.xml"
-    with open(fname, "r") as f:
-        event = read_voevent(f.read())
-    pprint(clean_dict(event["voe:VOEvent"]))
+    event = read_voevent(fname, is_file=True)
+    pprint(event)
     return
 
 
+def test_all():
+    from glob import glob
+
+    print("file | result | note ")
+    for fname in glob("output/*.xml"):
+        try:
+            if "classic" in fname:
+                read_voevent(fname, is_file=True)
+            else:
+                with open(fname, "r") as f:
+                    json.loads(f.read())
+        except Exception as e:
+            print(f"{fname} | fail | {e}")
+        else:
+            print(f"{fname} | pass | ")
+
+
 if __name__ == "__main__":
-    test_SWIFT()
-    test_LVC()  # This one fails
+    test_all()
