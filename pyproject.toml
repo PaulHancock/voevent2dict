@@ -6,6 +6,14 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = ["xml2dict>=0.2.2"]
 
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["voevent2dict"]
+package-dir = {"" = "src"}
+
 [project.optional-dependencies]
 dev = ["pytest>=6.0", "black", "gcn-kafka>=0.3.3","python-dotenv>=1.0.1"]
 docs = ["sphinx>=3.0", "sphinx-rtd-theme"]
