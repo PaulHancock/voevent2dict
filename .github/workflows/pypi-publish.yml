@@ -6,7 +6,7 @@ on:
 
 
 jobs:
-build:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -33,7 +33,7 @@ build:
       with:
         name: python-package-distributions
         path: dist/
-
+  
   pypi-publish:
     name: upload release to PyPI
     needs:
