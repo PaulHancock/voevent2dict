@@ -14,5 +14,5 @@ build-backend = "setuptools.build_meta"
 package-dir = {"" = "src"}
 
 [project.optional-dependencies]
-dev = ["pytest>=6.0", "black", "gcn-kafka>=0.3.3","python-dotenv>=1.0.1","pytest>=8.3.4", "twine", "build"]
+dev = ["pytest>=6.0", "black", "gcn-kafka>=0.3.3","python-dotenv>=1.0.1","pytest>=8.3.4"]
 docs = ["sphinx>=3.0", "sphinx-rtd-theme"]
