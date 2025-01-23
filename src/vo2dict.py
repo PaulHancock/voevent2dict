@@ -1,8 +1,9 @@
-import xmltodict
-from pprint import pprint
 import json
-from typing import Union
 import logging
+from pprint import pprint
+from typing import Union
+
+import xmltodict
 
 logging.basicConfig(
     level=logging.INFO,
