@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Convert VOEvents from their native .xml format into Python dictionaries."
 readme = "README.md"
 requires-python = ">=3.8"
-dependencies = ["xml2dict>=0.2.2"]
+dependencies = ["xmltodict>=0.14.2"]
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
