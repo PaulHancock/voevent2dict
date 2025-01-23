@@ -2,6 +2,14 @@ import xmltodict
 from pprint import pprint
 import json
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s@%(name)s:%(lineno)d - %(message)s",
+)
+log = logging.getLogger(__name__)
+
 
 def read_voevent(xml_content, is_file=False):
     """
@@ -15,10 +23,13 @@ def read_voevent(xml_content, is_file=False):
         dict: A Python dictionary representation of the VOEvent.
     """
     if is_file:
+        log.debug(f"Reading VOEvent from file: {xml_content}")
         with open(xml_content, "r") as f:
             xml_content = f.read()
     # Parse the XML content using xmltodict
+    log.debug("Parsing VOEvent XML")
     voevent_dict = xmltodict.parse(xml_content)
+    log.debug("Cleaning VOEvent dictionary")
     return clean_voevent(voevent_dict)
 
 
@@ -67,6 +78,9 @@ def clean_voevent(voevent):
         k = "voe:VOEvent"
     else:
         k = "VOEvent"
+    log.debug("Cleaning VOEvent:")
+    if log.isEnabledFor(logging.DEBUG):
+        pprint(voevent[k])
     return clean_dict(voevent[k])
 
 
@@ -79,6 +93,7 @@ def clean_dict(dirty):
     new = dict()
     for k, v in dirty.items():
         name = noat(k)
+        log.debug(f"Cleaning {name}")
         if name == "Param":
             new.update(group_params(v))
         elif name == "Group":
@@ -110,6 +125,7 @@ def group_params(params):
         params = [params]
     for p in params:
         name = p["@name"]
+        log.debug(f"\tParam: {name}")
         new[name] = coerce(p["@value"])
         for k, v in p.items():
             if k not in ["@name", "@value"]:
@@ -119,31 +135,24 @@ def group_params(params):
 
 def group_groups(groups):
     new = dict()
-    for p in groups:
-        name = p["@name"]
-        new[name] = group_params(p["Param"])
+    log.debug(f"Group: {groups}")
+    if isinstance(groups, list):
+        for p in groups:
+            name = p["@name"]
+            new[name] = group_params(p["Param"])
+    elif isinstance(groups, dict):
+        new.update(clean_dict(groups))
     return new
-
-
-def test_SWIFT():
-    fname = "notebooks/data/SWIFT_BAT_Lightcurve_new.xml"
-    event = read_voevent(fname, is_file=True)
-    pprint(event)
-    return
-
-
-def test_LVC():
-    fname = "notebooks/data/LVC_real_preliminary_new.xml"
-    event = read_voevent(fname, is_file=True)
-    pprint(event)
-    return
 
 
 def test_all():
     from glob import glob
 
-    print("file | result | note ")
-    for fname in glob("output/*.xml"):
+    print("| file | result | note |")
+    print("| --- | --- | --- |")
+    passed = 0
+    failed = 0
+    for fname in sorted(glob("output/*.xml")):
         try:
             if "classic" in fname:
                 read_voevent(fname, is_file=True)
@@ -151,10 +160,24 @@ def test_all():
                 with open(fname, "r") as f:
                     json.loads(f.read())
         except Exception as e:
-            print(f"{fname} | fail | {e}")
+            print(f"| {fname} | fail | {e} |")
+            failed += 1
         else:
-            print(f"{fname} | pass | ")
+            print(f"| {fname} | pass | |")
+            passed += 1
+    print(f"{passed} passed, {failed} failed")
+
+
+def test_one(fname):
+    log.setLevel(logging.DEBUG)
+    if "classic" in fname:
+        read_voevent(fname, is_file=True)
+    else:
+        with open(fname, "r") as f:
+            json.loads(f.read())
+    log.info(f"Successfully read {fname}")
 
 
 if __name__ == "__main__":
     test_all()
+    # test_one("output/20250122_160745_0_gcn.classic.voevent.FERMI_POINTDIR.xml")
