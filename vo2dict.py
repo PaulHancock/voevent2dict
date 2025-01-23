@@ -1,7 +1,7 @@
 import xmltodict
 from pprint import pprint
 import json
-
+from typing import Union
 import logging
 
 logging.basicConfig(
@@ -30,7 +30,20 @@ def read_voevent(xml_content, is_file=False):
     log.debug("Parsing VOEvent XML")
     voevent_dict = xmltodict.parse(xml_content)
     log.debug("Cleaning VOEvent dictionary")
-    return clean_voevent(voevent_dict)
+    d = clean_voevent(voevent_dict)
+    if not hasattr(d, "RA") or not hasattr(d, "Dec"):
+        try:
+            d["RA"] = d["WhereWhen"]["ObsDataLocation"]["ObservationLocation"][
+                "AstroCoords"
+            ]["Position2D"]["Value2"]["C1"]
+            d["Dec"] = d["WhereWhen"]["ObsDataLocation"]["ObservationLocation"][
+                "AstroCoords"
+            ]["Position2D"]["Value2"]["C2"]
+        except KeyError:
+            log.debug("RA and Dec not found in event")
+            d["RA"] = None
+            d["Dec"] = None
+    return d
 
 
 def coerce(val):
@@ -52,10 +65,10 @@ def coerce(val):
     # Try to convert the value to an int, then a float, then a bool
     try:
         return int(val)
-    except:
+    except ValueError:
         try:
             return float(val)
-        except:
+        except ValueError:
             if val.strip().lower() == "true":
                 return True
             elif val.strip().lower() == "false":
@@ -73,7 +86,20 @@ def noat(val):
     return val
 
 
-def clean_voevent(voevent):
+def clean_voevent(voevent: dict) -> dict:
+    """
+    Clean up the structure of the voevent dict so that it's much easier
+    to work with.
+
+    Parameters:
+        voevent (dict): The VOEvent dictionary.
+
+    Returns:
+        dict: The cleaned VOEvent dictionary
+    """
+
+    # Check if the VOEvent is in the "voe:VOEvent" or "VOEvent" key
+    # because the key changes depending on the VOEvent version
     if "voe:VOEvent" in voevent:
         k = "voe:VOEvent"
     else:
@@ -84,7 +110,7 @@ def clean_voevent(voevent):
     return clean_dict(voevent[k])
 
 
-def clean_dict(dirty):
+def clean_dict(dirty: dict) -> dict:
     """
     Unpack a dict made by xlmtodict into a more readable format. This will
     remove all the @name and @value keys and replace them with the actual names
@@ -107,7 +133,7 @@ def clean_dict(dirty):
     return new
 
 
-def clean_list(dirty):
+def clean_list(dirty: Union[list, dict]) -> list:
     new = []
     for item in dirty:
         if isinstance(item, dict):
@@ -119,7 +145,7 @@ def clean_list(dirty):
     return new
 
 
-def group_params(params):
+def group_params(params: list) -> dict:
     new = dict()
     if not isinstance(params, list):
         params = [params]
@@ -133,13 +159,14 @@ def group_params(params):
     return new
 
 
-def group_groups(groups):
+def group_groups(groups: Union[list, dict]) -> dict:
     new = dict()
     log.debug(f"Group: {groups}")
     if isinstance(groups, list):
         for p in groups:
-            name = p["@name"]
-            new[name] = group_params(p["Param"])
+            new.update(clean_dict(p))
+            # name = p["@name"]
+            # new[name] = group_params(p["Param"])
     elif isinstance(groups, dict):
         new.update(clean_dict(groups))
     return new
@@ -155,10 +182,13 @@ def test_all():
     for fname in sorted(glob("output/*.xml")):
         try:
             if "classic" in fname:
-                read_voevent(fname, is_file=True)
+                event = read_voevent(fname, is_file=True)
             else:
                 with open(fname, "r") as f:
-                    json.loads(f.read())
+                    event = json.loads(f.read())
+            new_fname = fname.replace(".xml", ".json")
+            with open(new_fname, "w") as f:
+                f.write(json.dumps(event))
         except Exception as e:
             print(f"| {fname} | fail | {e} |")
             failed += 1
@@ -180,4 +210,4 @@ def test_one(fname):
 
 if __name__ == "__main__":
     test_all()
-    # test_one("output/20250122_160745_0_gcn.classic.voevent.FERMI_POINTDIR.xml")
+    # test_one("output/20250123_063239_290_gcn.classic.voevent.LVC_PRELIMINARY.xml")
